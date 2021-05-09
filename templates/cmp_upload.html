@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plant Comparison</title>
+    <style>
+    body {
+        text-align: center;
+    }
+    .a {
+        position: relative;
+        display: inline-block;
+        background: #D0EEFF;
+        border: 1px solid #99D3F5;
+        border-radius: 4px;
+        padding: 4px 12px;
+        overflow: hidden;
+        color: #1E88C7;
+        text-decoration: none;
+        text-indent: 0;
+        line-height: 20px;
+    }
+    .b {
+        position: relative;
+        display: inline-block;
+        background: #D0EEFF;
+        border: 1px solid #99D3F5;
+        border-radius: 4px;
+        padding: 4px 12px;
+        overflow: hidden;
+        color: #1E88C7;
+        text-decoration: none;
+        text-indent: 0;
+        line-height: 20px;
+    }
+    .a input {
+        position: absolute;
+        font-size: 100px;
+        right: 0;
+        top: 0;
+        opacity: 0;
+    }
+    .b input {
+        position: absolute;
+        font-size: 100px;
+        right: 0;
+        top: 0;
+        opacity: 0;
+    }
+    .upload:hover {
+        background: #AADFFD;
+        border-color: #78C3F3;
+        color: #004974;
+        text-decoration: none;
+    }
+    </style>
+
+</head>
+<body>
+    <h1>Plant Comparison</h1>
+    <form id="form" action="/compare" enctype='multipart/form-data' method='POST'>
+        <a href="javascript:;" class="a upload">
+            <input type="file" name="image1" onchange="upload(0)">Select an image file
+        </a>
+        <a href="javascript:;" class="b upload">
+            <input type="file" name="image2" onchange="upload(1)">Select another image file
+        </a>
+    </form>
+</body>
+
+<script type="text/javascript">
+    var images = [false, false]
+    function upload(index) {
+        if (images[index] == false)
+            images[index] = true
+
+        if (images[0] && images[1])
+        {
+            var form = document.getElementById('form')
+            form.submit()
+            console.log('submit')
+            images = [false, false]
+        }
+    }
+</script>
