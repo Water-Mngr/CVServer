@@ -3,14 +3,13 @@ import sys
 import time
 import base64
 from io import BytesIO
-from datetime import timedelta
 
 import cv2
+from datetime import timedelta
 from PIL import Image
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
-from werkzeug.utils import secure_filename
-from gevent.pywsgi import WSGIServer
+# from gevent.pywsgi import WSGIServer
 
 sys.path.insert(0, '..')
 
@@ -34,7 +33,7 @@ def allowed_file_type(filename):
 def predict_web():
     if request.method == 'POST':
         f = request.files['image']
-        image_filename = os.path.basename(secure_filename(f.filename))
+        image_filename = os.path.basename(f.filename)
 
         if not (f and allowed_file_type(image_filename)):
             return jsonify({"error": 1001, "message": "Please check image file format, "
@@ -100,7 +99,7 @@ def predict_json():
     
     
 if __name__ == '__main__':
-    app.run(port=5000, debug=False)
+    app.run(debug=True)
     
     # http_server = WSGIServer(('0.0.0.0', 5000), app)
     # http_server.serve_forever()

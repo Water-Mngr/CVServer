@@ -12,8 +12,11 @@
   - plant_id // 植物种类识别模块，源自[开源项目](https://github.com/quarrying/quarrying-plant-id/)
 - templates // html模板，便于后端可视化校验正确性
 - app.py // flask app
+- requirements.txt python模块需求文件
+- gunicorn.conf.py | Dockerfile 项目部署配置文件
 
 ## Tech Stack
 
 - flask
 - opencv
+- Docker

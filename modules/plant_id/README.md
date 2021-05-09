@@ -1,12 +1,17 @@
-# Features
+# Plant-identify
+
+## Features
+
 - Identify 1320 plant species.
 - Model size: 51.8M; top1 accuracy: 90%+.
 - Open-source model, easy-to-use interface.
 - Update continuously.
 
-# Installation
+## Installation
+
 You need install Anaconda, then run below:
-```
+
+```shell
 git clone https://github.com/quarrying/quarrying-plant-id.git
 cd quarrying-plant-id
 conda create -n plantid python=3.6 -y
@@ -14,37 +19,32 @@ conda activate plantid
 pip install -r requirements.txt
 ```
 
-# Usage 
+## Usage
 
-## Method I: Python Interface
-```python
-import plantid
+1. Method I: Python Interface
 
-plant_identifier = plantid.PlantIdentifier()
-probs, class_names = plant_identifier.predict(image_filename)
-print(class_names[0], probs[0])
-```
-You can also see [tools/test.py](<tools/test.py>).
+    ```python
+    import plantid
 
-## Method II: Web App
-Run below
-```
-cd webapp
-conda activate plantid
-python app.py
-```
-Then open <http://127.0.0.1:5000/>, and upload an image file.
+    plant_identifier = plantid.PlantIdentifier()
+    probs, class_names = plant_identifier.predict(image_filename)
+    print(class_names[0], probs[0])
+    ```
 
+    You can also see [tools/test.py](tools/test.py).
 
-### Examples
-![](docs/plant_00.png)
+2. Method II: Web App
 
-![](docs/plant_01.png)
+    Run below
 
-![](docs/plant_02.png)
+    ```shell
+    cd webapp
+    conda activate plantid
+    python app.py
+    ```
 
-![](docs/plant_03.png)
+    Then open <http://127.0.0.1:5000/>, and upload an image file.
 
-# Details
-See <https://zhuanlan.zhihu.com/p/364346303>.
+## Details
 
+See [article](https://zhuanlan.zhihu.com/p/364346303).

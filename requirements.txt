@@ -1,0 +1,13 @@
+# back-end app
+gunicorn
+gevent
+flask
+flask_cors
+numpy
+
+# modules requirements
+
+## plant-id
+# opencv-python>=4.5
+opencv-python-headless
+pillow
