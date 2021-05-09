@@ -19,4 +19,11 @@
 
 - flask
 - opencv
+- gunicorn gevent
 - Docker
+
+## Usage
+
+You can visit <http://kuqiochi.cn:5000>.
+
+More Details see [API](api.md)
