@@ -4,15 +4,28 @@
 
 ## Plant-identify
 
-Url: **/id**
+1. Url: **/id**
 
-Method: **POST**
+    Method: **POST**
 
-Body: {
-    image: file with extension png, jpg, jpeg or bmp
-}
+    Body: {
+        image: file with extension png, jpg, jpeg or bmp
+    }
 
-Return：List\<String\> names 最可能的5个植物名称
+    Return: JSON { class_names: string, intro: string(植物介绍), advice: string(浇水建议)}
+
+2. Url: **/id/list**
+
+    Method: **POST**
+
+    Body: {
+        image: file with extension png, jpg, jpeg or bmp
+    }
+
+    Return：JSON {
+        class_names: [ String ] (最可能的5个植物中文名称),
+        probs: [ float ] (对应的概率)
+    }
 
 ## Plant-distinguish
 
@@ -27,7 +40,7 @@ Body: {
 
 如拍的照片为src，要与dst比较
 
-Return: flag(boolean)
+Return: JSON: { similarity: float (相似度，＞ 1可认定为同一植物)}
 
 ## Plant-exception-detection
 
@@ -39,4 +52,4 @@ Body: {
     image: file with extension png, jpg, jpeg or bmp
 }
 
-Return: code(string) 异常种类
+Return: JSON: { problems: string (异常种类) }

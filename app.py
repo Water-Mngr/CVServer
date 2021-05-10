@@ -115,23 +115,33 @@ def detectExceptionUI():
         return 'Non-support'
     return 'Non-support'
 
-
 @app.route('/id', methods=['POST'])
 def plantIdentify():
     print('here')
     if request.content_type.startswith('application/json'):
         data = request.get_json()
         image = base64_to_pil(data['image'])
-        # image.show()
+        raw_image_filename = os.path.join(raw_image_dir, '{}.jpg'.format(time_stamp()))  
+        image.save(raw_image_filename)
 
+        probs, class_names = plant_identifier.predict(raw_image_filename, topk=1)
+        return jsonify(class_names=class_names[0]['chinese_name'], intro='这种植物喜温寒，特别香', advice='3~5天')
+    return 'Non-support'
+
+@app.route('/id/list', methods=['POST'])
+def plantIdentifyList():
+    print('here')
+    if request.content_type.startswith('application/json'):
+        data = request.get_json()
+        image = base64_to_pil(data['image'])
         raw_image_filename = os.path.join(raw_image_dir, '{}.jpg'.format(time_stamp()))  
         image.save(raw_image_filename)
 
         probs, class_names = plant_identifier.predict(raw_image_filename)
+        os.remove(raw_image_filename)
         probs = ['{:.5f}'.format(prob) for prob in probs]
+        class_names = [name['chinese_name'] for name in class_names]
 
-        print('probs')
-        print(probs)
         return jsonify(class_names=class_names, probs=probs)
     return 'Non-support'
 
@@ -150,7 +160,8 @@ def compare2plant():
             images.append(cv2.imread(raw_image_filename, 0))
             os.remove(raw_image_filename)
 
-        return plant_cmp.calculateSimilarity(images[0], images[1])
+        res = plant_cmp.calculateSimilarity(images[0], images[1])
+        return jsonify(similarity=res)
 
     return 'Non-support'
 
@@ -158,9 +169,14 @@ def compare2plant():
 def detectException():
     print('here')
     if request.content_type.startswith('application/json'):
-        print('got it')
-        print(request.json)
-        return 'got it'
+        data = request.get_json()
+        image = base64_to_pil(data['image'])
+        raw_image_filename = os.path.join(raw_image_dir, '{}.jpg'.format(time_stamp()))  
+        image.save(raw_image_filename)
+
+        probs, class_names = plant_identifier.predict(raw_image_filename, topk=1)
+        os.remove(raw_image_filename)
+        return jsonify(problems='无异常')
     return 'Non-support'
 
 if __name__ == '__main__':
