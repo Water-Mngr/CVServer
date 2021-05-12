@@ -4,14 +4,15 @@ import time
 import base64
 from io import BytesIO
 
+import re
 import cv2
 from datetime import timedelta
 from PIL import Image
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, Response
 from flask_cors import CORS
 
 sys.path.insert(0, '..')
-from modules import plant_id, plant_cmp
+from modules import plant_id, plant_cmp, plant_crawler
 
 
 app = Flask(__name__)
@@ -48,6 +49,14 @@ raw_image_dir = os.path.join(base_dir, 'static/raw_images')
 tmp_image_dir = os.path.join(base_dir, 'static/images')
 os.makedirs(raw_image_dir, exist_ok=True)
 os.makedirs(tmp_image_dir, exist_ok=True)
+
+def searchFileStartsWith(keyword, root):
+    dirs = os.listdir(root)
+    for file in dirs:
+        if file.startswith(keyword):
+            return file
+
+    return None
 
 @app.route('/', methods=['GET'])
 def home():
@@ -125,7 +134,26 @@ def plantIdentify():
         image.save(raw_image_filename)
 
         probs, class_names = plant_identifier.predict(raw_image_filename, topk=1)
-        return jsonify(class_names=class_names[0]['chinese_name'], intro='这种植物喜温寒，特别香', advice='3~5天')
+        name = class_names[0]['chinese_name']
+        kind_name = re.findall(r'[(](.*?)[)]', name.split('_')[2])[0]
+
+        cache = searchFileStartsWith(kind_name, tmp_image_dir)
+        if cache == None:
+            refer = plant_crawler.CrabPlantImage(kind_name, tmp_image_dir)
+            if not refer:
+                refer = plant_crawler.CrabPlantImage(kind_name, tmp_image_dir, method='PBCC')
+        else:
+            refer = '{}/{}'.format(tmp_image_dir, cache)
+
+        with open(refer, 'rb') as f:
+            res = base64.b64encode(f.read())
+
+        return jsonify(sec_name=name.split('_')[0], 
+                        gen_name=name.split('_')[1], 
+                        kind_name=kind_name,
+                        intro='这种植物喜温寒，特别香', 
+                        advice='3~5天', 
+                        image = str(res, 'utf-8'))
     return 'Non-support'
 
 @app.route('/id/list', methods=['POST'])

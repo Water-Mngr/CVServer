@@ -11,3 +11,7 @@ numpy
 # opencv-python>=4.5
 opencv-python-headless
 pillow
+
+## plant-crawler
+requests
+bs4
