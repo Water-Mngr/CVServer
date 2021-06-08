@@ -3,6 +3,7 @@ gunicorn
 gevent
 flask
 flask_cors
+flask-apscheduler
 numpy
 
 # modules requirements
@@ -15,3 +16,4 @@ pillow
 ## plant-crawler
 requests
 bs4
+func_timeout

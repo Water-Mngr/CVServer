@@ -6,23 +6,49 @@ from io import BytesIO
 
 import re
 import cv2
-from datetime import timedelta
+import datetime
 from PIL import Image
 from flask import Flask, request, jsonify, render_template, Response
 from flask_cors import CORS
+from flask_apscheduler import APScheduler
+import json
 
 sys.path.insert(0, '..')
 from modules import plant_id, plant_cmp, plant_crawler
 
 
+plant_identifier = plant_id.PlantIdentifier()
+class Config(object):
+    SCHEDULER_API_ENABLED = True
+
 app = Flask(__name__)
 CORS(app, supports_credentials=True)
-app.send_file_max_age_default = timedelta(seconds=1)
+app.send_file_max_age_default = datetime.timedelta(seconds=1)
+app.config.from_object(Config())
 
-plant_identifier = plant_id.PlantIdentifier()
+scheduler = APScheduler()
+scheduler.init_app(app)
+scheduler.start()
+
+@scheduler.task('cron', id='1', day='*', hour='08', minute='00', second='00')
+def grabWeather():
+    '''
+    每日08：00定时获取当天天气
+    '''
+    res = plant_crawler.weather()
+    with open('weather.json', 'r') as fd:
+        weather = json.load(fd)
+    
+    if len(weather['history']) >= 7:
+        del(weather['history'][0])
+    weather['history'].append(res)
+
+    with open('weather.json', 'w') as fd:
+        fd.write(json.dumps(weather))
 
 def time_stamp():
-    '''@return: 当前时间戳
+    '''
+    @return: 当前时间戳
     '''
     return int(round(time.time() * 1000))
 
@@ -135,7 +161,10 @@ def plantIdentify():
 
         probs, class_names = plant_identifier.predict(raw_image_filename, topk=1)
         name = class_names[0]['chinese_name']
-        kind_name = re.findall(r'[(](.*?)[)]', name.split('_')[2])[0]
+        kind_name = name.split('_')[-1]
+        patterns = re.findall(r'[(](.*?)[)]', kind_name)
+        if len(patterns):
+            kind_name = patterns[0]
 
         cache = searchFileStartsWith(kind_name, tmp_image_dir)
         if cache == None:
