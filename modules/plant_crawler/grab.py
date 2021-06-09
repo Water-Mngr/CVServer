@@ -2,7 +2,7 @@
 Copyrights: ©2021 @Laffery
 Date: 2021-05-12 09:16:32
 LastEditor: Laffery
-LastEditTime: 2021-06-08 22:59:37
+LastEditTime: 2021-06-09 15:28:07
 '''
 # conding=utf-8
 import requests
@@ -127,7 +127,6 @@ def CrabPlantInfo(name):
     soup = BeautifulSoup(response.text, features='html.parser')
 
     res = { 
-            'n': name, # name
             'd': soup.find(attrs={"name":"description"})['content'], # description
             'w': 0, # water
             'l': 0, # light
@@ -162,14 +161,13 @@ def weather():
     return json.loads(response.text)['data']['forecast'][0]
 
 if __name__ == '__main__':
-    dict = get_label_name_dict('./modules/plant_id/plantid/models/quarrying_plantid_label_map.txt')
-    info = { 'data': [], 'size': len(dict) }
+    dict = get_label_name_dict('./modules/plant_id/models/label_map.txt')
+    info = { 'data': {}, 'size': len(dict) }
     total = info['size']
 
     for i in range(0, total):
         try:
-            res = CrabPlantInfo(dict[i])
-            info['data'].append(res)
+            info['data'][dict[i]] = CrabPlantInfo(dict[i])
         except func_timeout.exceptions.FunctionTimedOut:
             pass
         except Exception as e:

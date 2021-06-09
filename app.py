@@ -1,13 +1,11 @@
 import os
 import sys
-import time
 import base64
 from io import BytesIO
 
 import re
 import cv2
 import datetime
-from PIL import Image
 from flask import Flask, request, jsonify, render_template, Response
 from flask_cors import CORS
 from flask_apscheduler import APScheduler
@@ -15,9 +13,19 @@ import json
 
 sys.path.insert(0, '..')
 from modules import plant_id, plant_cmp, plant_crawler
+from utils import base64_to_pil, timestamp, time_stamp, json_load, json_write
 
-
+plant_info = json_load('model.json')
 plant_identifier = plant_id.PlantIdentifier()
+
+def getPlantInfo(name):
+    '''
+    @name: 植物中名
+    @return: 植物信息:d-介绍|w-水依赖|t-温度依赖|l-光照依赖
+    '''
+    data = plant_info['data']
+    return data[name] if data[name] else { 'd': 'unknown', 'w': 0, 't': 0, 'l': 0}
+
 class Config(object):
     SCHEDULER_API_ENABLED = True
 
@@ -36,25 +44,34 @@ def grabWeather():
     每日08：00定时获取当天天气
     '''
     res = plant_crawler.weather()
-    with open('weather.json', 'r') as fd:
-        weather = json.load(fd)
+    weather = json_load('weather.json')
     
     if len(weather['history']) >= 7:
         del(weather['history'][0])
+
     weather['history'].append(res)
+    json_write(weather, 'weather.json')
 
-    with open('weather.json', 'w') as fd:
-        fd.write(json.dumps(weather))
+def waterAdvice(name, rest):
+    '''
+    @name: 植物种类
+    @rest: 当前剩余天数
+    '''
+    info = plant_info['data'][name]
+    return rest if rest > 0 else 0
 
-def time_stamp():
+def getKindName(chinese_name):
     '''
-    @return: 当前时间戳
+    @chinese_name 包含科名、属名、种名
+    @return 植物种名
     '''
-    return int(round(time.time() * 1000))
+    kind_name = chinese_name.split('_')[-1]
+    patterns = re.findall(r'[(](.*?)[)]', kind_name) # 如果有括号
+    return patterns[0] if len(patterns) else kind_name
 
 def allowed_file_type(filename):
     '''
-    Define what file extentsion is allowed
+    @return 允许的扩展名
     '''
     ALLOWED_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.bmp']
     extension = os.path.splitext(os.path.basename(filename))[1]
@@ -62,17 +79,9 @@ def allowed_file_type(filename):
 
 un_allowed_file_type_msg = 'Please check image file format, only support png, jpg, jpeg, bmp'
 
-def base64_to_pil(image_data):
-    '''
-    Convert base64 image data to PIL image
-    '''
-    pil_image = Image.open(BytesIO(base64.b64decode(image_data)))
-    return pil_image
-
-base_dir = os.path.dirname(__file__)
- 
-raw_image_dir = os.path.join(base_dir, 'static/raw_images')
-tmp_image_dir = os.path.join(base_dir, 'static/images')
+root_dir = os.path.dirname(__file__)
+raw_image_dir = os.path.join(root_dir, 'static/raw_images')
+tmp_image_dir = os.path.join(root_dir, 'static/images')
 os.makedirs(raw_image_dir, exist_ok=True)
 os.makedirs(tmp_image_dir, exist_ok=True)
 
@@ -109,13 +118,15 @@ def plantIdentifyUI():
         chinese_names = [item['chinese_name'] for item in class_names]
         latin_names = [item['latin_name'] for item in class_names]
         probs = ['{:.5f}'.format(prob) for prob in probs]
-        labels = ['Chinese Name', 'Latin Name', 'Confidence']
-        records = zip(chinese_names, latin_names, probs)
+        labels = ['Chinese Name', 'Latin Name', 'description', 'Confidence']
+        desc = [getPlantInfo(getKindName(name))['d'] for name in chinese_names]
+        records = zip(chinese_names, latin_names, desc, probs)
 
         return render_template('id_upload_ok.html', 
-                               labels=labels, records=records, 
+                               labels=labels,
+                               records=records,
                                image_filename=new_image_filename, 
-                               timestamp=time.time())
+                               timestamp=timestamp())
     return render_template('id_upload.html')
 
 @app.route('/ui/compare', methods=['GET', 'POST'])
@@ -161,10 +172,7 @@ def plantIdentify():
 
         probs, class_names = plant_identifier.predict(raw_image_filename, topk=1)
         name = class_names[0]['chinese_name']
-        kind_name = name.split('_')[-1]
-        patterns = re.findall(r'[(](.*?)[)]', kind_name)
-        if len(patterns):
-            kind_name = patterns[0]
+        kind_name = getKindName(name)
 
         cache = searchFileStartsWith(kind_name, tmp_image_dir)
         if cache == None:
@@ -180,26 +188,9 @@ def plantIdentify():
         return jsonify(sec_name=name.split('_')[0], 
                         gen_name=name.split('_')[1], 
                         kind_name=kind_name,
-                        intro='这种植物喜温寒，特别香', 
-                        advice='3~5天', 
-                        image = str(res, 'utf-8'))
-    return 'Non-support'
-
-@app.route('/id/list', methods=['POST'])
-def plantIdentifyList():
-    print('here')
-    if request.content_type.startswith('application/json'):
-        data = request.get_json()
-        image = base64_to_pil(data['image'])
-        raw_image_filename = os.path.join(raw_image_dir, '{}.jpg'.format(time_stamp()))  
-        image.save(raw_image_filename)
-
-        probs, class_names = plant_identifier.predict(raw_image_filename)
-        os.remove(raw_image_filename)
-        probs = ['{:.5f}'.format(prob) for prob in probs]
-        class_names = [name['chinese_name'] for name in class_names]
-
-        return jsonify(class_names=class_names, probs=probs)
+                        intro=getPlantInfo(kind_name)['d'], 
+                        advice=waterAdvice(name, 7), 
+                        image=str(res, 'utf-8'))
     return 'Non-support'
 
 @app.route('/compare', methods=['POST'])

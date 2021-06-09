@@ -1,3 +1,9 @@
+'''
+Copyrights: ©2021 @Laffery
+Date: 2021-04-29 08:23:38
+LastEditor: Laffery
+LastEditTime: 2021-06-09 15:27:46
+'''
 import os
 from collections import OrderedDict
 
@@ -19,8 +25,8 @@ def get_label_name_dict(filename):
 class PlantIdentifier(object):
     def __init__(self):
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        self.net = cv2.dnn.readNetFromONNX(os.path.join(current_dir, 'models/quarrying_plantid_model.oonx'))
-        self.label_name_dict = get_label_name_dict(os.path.join(current_dir, 'models/quarrying_plantid_label_map.txt'))
+        self.net = cv2.dnn.readNetFromONNX(os.path.join(current_dir, 'models/model.oonx'))
+        self.label_name_dict = get_label_name_dict(os.path.join(current_dir, 'models/label_map.txt'))
 
     def _preprocess(self, image):
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
