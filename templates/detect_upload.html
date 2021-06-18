@@ -1,0 +1,54 @@
+<!--
+ * @Copyrights: ©2021 @Laffery
+ * @Date: 2021-06-18 22:56:41
+ * @LastEditor: Laffery
+ * @LastEditTime: 2021-06-18 23:14:58
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plant Detection</title>
+    <style>
+    body {
+        text-align: center;
+    }
+    .a-upload {
+        position: relative;
+        display: inline-block;
+        background: #D0EEFF;
+        border: 1px solid #99D3F5;
+        border-radius: 4px;
+        padding: 4px 12px;
+        overflow: hidden;
+        color: #1E88C7;
+        text-decoration: none;
+        text-indent: 0;
+        line-height: 20px;
+    }
+    .a-upload input {
+        position: absolute;
+        font-size: 100px;
+        right: 0;
+        top: 0;
+        opacity: 0;
+    }
+    .a-upload:hover {
+        background: #AADFFD;
+        border-color: #78C3F3;
+        color: #004974;
+        text-decoration: none;
+    }
+    </style>
+
+</head>
+<body>
+    <h1>Plant Detection</h1>
+    <form action="" enctype='multipart/form-data' method='POST'>
+        <a href="javascript:;" class="a-upload">
+            <input type="file" name="image" onchange="this.form.submit()">Select an image file
+        </a>
+    </form>
+</body>

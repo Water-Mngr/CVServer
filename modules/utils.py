@@ -1,8 +1,16 @@
 import os
-
+from collections import OrderedDict
 import cv2
 import numpy as np
 
+def get_label_name_dict(filename):
+    records = load_list(filename, 'utf8')
+    label_name_dict = {}
+    for record in records:
+        label, chinese_name, latin_name = record.split(',')
+        label_name_dict[int(label)] = OrderedDict([('chinese_name', chinese_name), 
+                                                   ('latin_name', latin_name)])
+    return label_name_dict
 
 def load_list(filename, encoding=None, start=0, stop=None, step=1):
     assert isinstance(start, int) and start >= 0

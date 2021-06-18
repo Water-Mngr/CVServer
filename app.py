@@ -11,8 +11,7 @@ from flask_cors import CORS
 from flask_apscheduler import APScheduler
 import json
 
-sys.path.insert(0, '..')
-from modules import plant_id, plant_cmp, plant_crawler
+from modules import plant_id, plant_cmp, plant_crawler, plant_detect
 from utils import base64_to_pil, time_stamp, time_margin, json_load, json_write
 
 plant_info = json_load('model.json')
@@ -121,10 +120,8 @@ def allowed_file_type(filename):
 un_allowed_file_type_msg = 'Please check image file format, only support png, jpg, jpeg, bmp'
 
 root_dir = os.path.dirname(__file__)
-raw_image_dir = os.path.join(root_dir, 'static/raw_images')
-tmp_image_dir = os.path.join(root_dir, 'static/images')
-os.makedirs(raw_image_dir, exist_ok=True)
-os.makedirs(tmp_image_dir, exist_ok=True)
+image_dir = os.path.join(root_dir, 'static/images')
+os.makedirs(image_dir, exist_ok=True)
 
 def searchFileStartsWith(keyword, root):
     '''
@@ -150,27 +147,23 @@ def plantIdentifyUI():
         if not (f and allowed_file_type(image_filename)):
             return jsonify({'error': 1001, 'message': un_allowed_file_type_msg})
         
-        new_image_filename = '{}{}'.format(time_stamp(), os.path.splitext(image_filename)[-1])
-        raw_image_filename = os.path.join(raw_image_dir, new_image_filename)  
-        f.save(raw_image_filename)
- 
-        img = cv2.imread(raw_image_filename)
-        img = plant_id.resize_image_short(img, 512)
-        cv2.imwrite(os.path.join(tmp_image_dir, new_image_filename), img)
-        
-        probs, class_names = plant_identifier.predict(raw_image_filename)
-        chinese_names = [item['chinese_name'] for item in class_names]
-        latin_names = [item['latin_name'] for item in class_names]
-        probs = ['{:.5f}'.format(prob) for prob in probs]
-        labels = ['Chinese Name', 'Latin Name', 'description', 'Confidence']
-        desc = [getPlantInfo(getKindName(name))['d'] for name in chinese_names]
-        records = zip(chinese_names, latin_names, desc, probs)
+        new_filename = '{}{}'.format(time_stamp(), os.path.splitext(image_filename)[-1])
+        image_filename = os.path.join(image_dir, new_filename)  
+        f.save(image_filename)
 
-        return render_template('id_upload_ok.html', 
-                               labels=labels,
-                               records=records,
-                               image_filename=new_image_filename, 
-                               timestamp=time.time())
+        _, probs, class_names = plant_identifier.predict(cv2.imread(image_filename))
+        chinese_names = [item['chinese_name'] for item in class_names]
+        probs = ['{:.5f}'.format(prob) for prob in probs]
+        desc = [getPlantInfo(getKindName(name))['d'] for name in chinese_names]
+        records = zip(chinese_names, desc, probs)
+
+        return render_template(
+                                'id_upload_ok.html', 
+                                labels=['Chinese Name', 'Description', 'Confidence'],
+                                records=records,
+                                image_filename=new_filename, 
+                                timestamp=time.time()
+                            )
     return render_template('id_upload.html')
 
 @app.route('/ui/compare', methods=['GET', 'POST'])
@@ -186,46 +179,65 @@ def compare2plantUI():
             if not (file and allowed_file_type(image_filename)):
                 return jsonify({'error': 1001, 'message': un_allowed_file_type_msg})
 
-            new_image_filename = '{}{}'.format(time_stamp(), os.path.splitext(image_filename)[-1])
-            raw_image_filename = os.path.join(raw_image_dir, new_image_filename)
-            file.save(raw_image_filename)
-            image = cv2.imread(raw_image_filename, 0)
-            images.append(image)
-            os.remove(raw_image_filename)
+            new_filename = '{}{}'.format(time_stamp(), os.path.splitext(image_filename)[-1])
+            image_filename = os.path.join(image_dir, new_filename)
+            file.save(image_filename)
+            images.append(cv2.imread(image_filename))
+            os.remove(image_filename)
 
-        res = plant_cmp.calculateSimilarity(images[0], images[1])
+        ind0, _, _ = plant_identifier.predict(images[0])
+        ind1, _, _ = plant_identifier.predict(images[1])
+        res = plant_cmp.compare(images[0], images[1], ind0, ind1)
                 
-        return render_template('cmp_upload_ok.html',  similarity=res, result='相同' if res > 1 else '不相同')
+        return render_template('cmp_upload_ok.html',  similarity=res, result='相同' if res >= 1 else '不相同')
     
     return render_template('cmp_upload.html')
 
 @app.route('/ui/detect', methods=['GET', 'POST'])
 def detectExceptionUI():
     if request.method == 'POST':
-        return 'Non-support'
-    return 'Non-support'
+        f = request.files['image']
+        image_filename = os.path.basename(f.filename)
+
+        if not (f and allowed_file_type(image_filename)):
+            return jsonify({'error': 1001, 'message': un_allowed_file_type_msg})
+        
+        new_filename = '{}{}'.format(time_stamp(), os.path.splitext(image_filename)[-1])
+        image_filename = os.path.join(image_dir, new_filename)  
+        f.save(image_filename)
+
+        res = plant_detect.detect(image_filename)
+                
+        return render_template(
+                                'detect_upload_ok.html', 
+                                image_filename=new_filename, 
+                                timestamp=time.time(), 
+                                result=res
+                            )
+    
+    return render_template('detect_upload.html')
 
 @app.route('/id', methods=['POST'])
 def plantIdentify():
-    print('here')
     if request.content_type.startswith('application/json'):
         data = request.get_json()
         image = base64_to_pil(data['image'])
-        raw_image_filename = os.path.join(raw_image_dir, '{}.jpg'.format(time_stamp()))  
-        image.save(raw_image_filename)
+        image_filename = os.path.join(image_dir, '{}.jpg'.format(time_stamp()))  
+        image.save(image_filename)
 
-        probs, class_names = plant_identifier.predict(raw_image_filename, topk=1)
+        _, probs, class_names = plant_identifier.predict(image_filename, topk=1)
         name = getKindName(class_names[0]['chinese_name'])
 
-        return jsonify(name=name,
+        return jsonify(
+                        name=name,
                         intro=getPlantInfo(name)['d'], 
                         advice=waterAdvice(name), 
-                        image=plant_crawler.CrabPlantImageUrl(name))
+                        image=plant_crawler.CrabPlantImageUrl(name)
+                    )
     return 'Non-support'
 
 @app.route('/compare', methods=['POST'])
 def compare2plant():
-    print('here')
     if request.content_type.startswith('application/json'):
         data = request.get_json()
         files = [data['src'], data['dst']]
@@ -233,27 +245,28 @@ def compare2plant():
 
         for file in files:
             image = base64_to_pil(file)
-            raw_image_filename = os.path.join(raw_image_dir, '{}.jpg'.format(time_stamp())) 
-            image.save(raw_image_filename)
-            images.append(cv2.imread(raw_image_filename, 0))
-            os.remove(raw_image_filename)
+            image_filename = os.path.join(image_dir, '{}.jpg'.format(time_stamp())) 
+            image.save(image_filename)
+            images.append(cv2.imread(image_filename))
+            os.remove(image_filename)
 
-        res = plant_cmp.calculateSimilarity(images[0], images[1])
+        ind0, _, _ = plant_identifier.predict(images[0])
+        ind1, _, _ = plant_identifier.predict(images[1])
+        res = plant_cmp.compare(images[0], images[1], ind0, ind1)
         return jsonify(similarity=res)
 
     return 'Non-support'
 
 @app.route('/detect', methods=['POST'])
 def detectException():
-    print('here')
     if request.content_type.startswith('application/json'):
         data = request.get_json()
         image = base64_to_pil(data['image'])
-        raw_image_filename = os.path.join(raw_image_dir, '{}.jpg'.format(time_stamp()))  
-        image.save(raw_image_filename)
+        image_filename = os.path.join(image_dir, '{}.jpg'.format(time_stamp()))  
+        image.save(image_filename)
 
-        probs, class_names = plant_identifier.predict(raw_image_filename, topk=1)
-        os.remove(raw_image_filename)
+        _, probs, class_names = plant_identifier.predict(image_filename, topk=1)
+        os.remove(image_filename)
         return jsonify(problems='无异常')
     return 'Non-support'
 

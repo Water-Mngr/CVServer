@@ -2,25 +2,12 @@
 Copyrights: ©2021 @Laffery
 Date: 2021-04-29 08:23:38
 LastEditor: Laffery
-LastEditTime: 2021-06-09 15:27:46
+LastEditTime: 2021-06-18 21:49:33
 '''
 import os
-from collections import OrderedDict
-
 import cv2
 import numpy as np
 from .utils import *
-
-
-def get_label_name_dict(filename):
-    records = load_list(filename, 'utf8')
-    label_name_dict = {}
-    for record in records:
-        label, chinese_name, latin_name = record.split(',')
-        label_name_dict[int(label)] = OrderedDict([('chinese_name', chinese_name), 
-                                                   ('latin_name', latin_name)])
-    return label_name_dict
-
 
 class PlantIdentifier(object):
     def __init__(self):
@@ -37,12 +24,8 @@ class PlantIdentifier(object):
         image -= np.asarray([0.485, 0.456, 0.406])
         image /= np.asarray([0.229, 0.224, 0.225])
         return image
-        
-    def predict(self, filename, topk=5):
-        image = imread_ex(filename, -1)
-        if (image is None) or (image.dtype != np.uint8):
-            print('Image file corrupted!')
-            return None
+
+    def predict(self, image, topk=5):
         try:
             image = normalize_image_shape(image)
         except:
@@ -53,9 +36,7 @@ class PlantIdentifier(object):
         self.net.setInput(blob)
         results = self.net.forward()
         probs = softmax(results)
-        values, top_indices = find_topk(probs, kth=topk)
+        values, indices = find_topk(probs, kth=topk)
         probs = values[0]
-        class_names = [self.label_name_dict[ind] for ind in top_indices[0]]
-        return probs, class_names
-
-
+        class_names = [self.label_name_dict[ind] for ind in indices[0]]
+        return indices[0], probs, class_names

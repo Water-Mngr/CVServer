@@ -1,3 +1,9 @@
+'''
+Copyrights: ©2021 @Laffery
+Date: 2021-05-09 15:14:35
+LastEditor: Laffery
+LastEditTime: 2021-06-18 22:26:27
+'''
 import cv2
 
 sift = cv2.SIFT_create()
@@ -15,7 +21,7 @@ def ResizeImage(image):
     return image
 
 def ResizeColoredImage(image):
-    height, width,channel = image.shape
+    height, width, channel = image.shape
     ratio = width / height
     maxSize = 1024
     if (ratio > 1):
@@ -45,30 +51,16 @@ def match(des1, des2):
 
     return result
 
-def extractImage(imagePath):
-    image = ResizeImage(cv2.imread(imagePath, 0))
-    keypoint, descriptor = sift.detectAndCompute(image, None)
+def extractImage(image):
+    image = ResizeColoredImage(image)
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    keypoint, descriptor = sift.detectAndCompute(gray, None)
     return keypoint, descriptor
 
-
-def calculateSimilarityRaw(imagePath1, imagePath2):
-    '''
-    @params: 图像文件路径
-    @return: 相似度 > 1 可认定为同一株植物
-    '''
-    keypoint1, descriptor1 = extractImage(imagePath1)
-    keypoint2, descriptor2 = extractImage(imagePath2)
-
+def compare(img1, img2, ind1, ind2):
+    bias = 0.2 if len(set(ind1) & set(ind2)) > 0 else -1
+    keypoint1, descriptor1 = extractImage(img2)
+    keypoint2, descriptor2 = extractImage(img1)
     matches = match(descriptor1, descriptor2)
-    return 500 * (len(matches) / min(len(keypoint1), len(keypoint2)))
-
-def calculateSimilarity(cv2img1, cv2img2):
-    '''
-    @params: 图像
-    @return: 相似度 > 1 可认定为同一株植物
-    '''
-    keypoint1, descriptor1 = sift.detectAndCompute(ResizeImage(cv2img1), None)
-    keypoint2, descriptor2 = sift.detectAndCompute(ResizeImage(cv2img2), None)
-
-    matches = match(descriptor1, descriptor2)
-    return 500 * (len(matches) / min(len(keypoint1), len(keypoint2)))
+    score = 600 * (len(matches) / max(len(keypoint1), len(keypoint2)))
+    return score + bias > 1
