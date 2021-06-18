@@ -5,6 +5,7 @@ from io import BytesIO
 
 import re
 import cv2
+import time
 import datetime
 from flask import Flask, request, jsonify, render_template, Response
 from flask_cors import CORS
@@ -13,15 +14,15 @@ import json
 
 sys.path.insert(0, '..')
 from modules import plant_id, plant_cmp, plant_crawler
-from utils import base64_to_pil, timestamp, time_stamp, json_load, json_write
+from utils import base64_to_pil, time_stamp, time_margin, json_load, json_write
 
 plant_info = json_load('model.json')
 plant_identifier = plant_id.PlantIdentifier()
 
 def getPlantInfo(name):
     '''
-    @name: 植物中名
-    @return: 植物信息:d-介绍|w-水依赖|t-温度依赖|l-光照依赖
+    @name: 植物种名 \\
+    @return: 植物信息: d-介绍|w-水依赖|t-温度依赖|l-光照依赖
     '''
     data = plant_info['data']
     return data[name] if data[name] else { 'd': 'unknown', 'w': 0, 't': 0, 'l': 0}
@@ -38,31 +39,73 @@ scheduler = APScheduler()
 scheduler.init_app(app)
 scheduler.start()
 
-@scheduler.task('cron', id='1', day='*', hour='08', minute='00', second='00')
+@scheduler.task('interval', id='do_job_1', seconds=3, misfire_grace_time=900)
+# @scheduler.task('cron', id='1', day='*', hour='08', minute='00', second='00')
 def grabWeather():
     '''
     每日08：00定时获取当天天气
     '''
-    res = plant_crawler.weather()
+    date = time.localtime()
+    today = plant_crawler.weather()
     weather = json_load('weather.json')
-    
-    if len(weather['history']) >= 7:
-        del(weather['history'][0])
 
-    weather['history'].append(res)
+    weather['history']['{}-{}-{}'.format(date.tm_year, date.tm_mon, date.tm_mday)] = {
+        'high': int(re.findall(r'\d+', today['high'])[0]),
+        'type': today['type']
+    }
+
     json_write(weather, 'weather.json')
 
-def waterAdvice(name, rest):
+def parseYYmmDD(yymmdd):
     '''
-    @name: 植物种类
-    @rest: 当前剩余天数
+    @yymmdd: 日期，格式为`yy-mm-dd` \\
+    @return: 年月日(int)
     '''
-    info = plant_info['data'][name]
+    _tuple = re.findall(r'\d+')
+    return int(_tuple[0]), int(_tuple[1]), int(_tuple[2])
+
+def waterAdvice(name, lastdate):
+    '''
+    @name: 植物种类 \\
+    @lastdate: 上一次浇水的日期，格式为`yy-mm-dd` \\
+    @return: 剩余浇水日期，等于0则说明今天需要浇水
+    '''
+
+    year, month, day = parseYYmmDD(lastdate)
+    margin = time_margin(year, month, day) # 距离上次浇水天数
+    weather = json_load('weather.json')
+    info = getPlantInfo(name)['w'] + 1
+
+    refer = [7, 4, 2] # 推荐剩余浇水天数
+    rest = refer[info]
+
+    def handleHighTemperature(high):
+        if high:
+            r = [0, 1, 2] # 遇到高温要缩减的天数
+            rest -= r[info]
+
+    def handleWeather(weather):
+        if weather == '大雨':
+            r = [5, 3, 2] # 遇到大雨需要延长的天数
+        elif weather == '中雨':
+            r = [4, 2, 1] # 遇到中雨需要延长的天数
+        else:
+            r = [3, 1, 0] # 其它天气需要延长的天数
+        rest += r[info]
+
+    for i in range(margin):
+        date = datetime.datetime(year, month, day) + datetime.timedelta(days=i)
+        w = weather['history']['{}-{}-{}'.format(date.year, date.month, date.day)]
+
+        handleHighTemperature(w['high'] > 30)
+        handleWeather(w['type'])
+
+    rest -= margin
     return rest if rest > 0 else 0
 
 def getKindName(chinese_name):
     '''
-    @chinese_name 包含科名、属名、种名
+    @chinese_name 包含科名、属名、种名 \\
     @return 植物种名
     '''
     kind_name = chinese_name.split('_')[-1]
@@ -86,6 +129,9 @@ os.makedirs(raw_image_dir, exist_ok=True)
 os.makedirs(tmp_image_dir, exist_ok=True)
 
 def searchFileStartsWith(keyword, root):
+    '''
+    search file which starts with `keyword` in dir root 
+    '''
     dirs = os.listdir(root)
     for file in dirs:
         if file.startswith(keyword):
@@ -126,7 +172,7 @@ def plantIdentifyUI():
                                labels=labels,
                                records=records,
                                image_filename=new_image_filename, 
-                               timestamp=timestamp())
+                               timestamp=time.time())
     return render_template('id_upload.html')
 
 @app.route('/ui/compare', methods=['GET', 'POST'])
