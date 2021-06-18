@@ -68,6 +68,11 @@ def CrabPlantSrcNSII(name, path='NormalPath'):
 
     return 'http://site.nsii.org.cn/{}'.format(list[0][path])
 
+def CrabPlantImageUrl(name):
+    url = CrabPlantSrcNSII(name)
+    if url == False:
+        url = CrabPlantSrcPPBC(name)
+    return False if url == False else url
 
 def CrabPlantImage(name, DIRPath, method='NSII'):
     if method == 'NSII':

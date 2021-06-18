@@ -1,7 +1,6 @@
 import os
 import sys
 import base64
-from io import BytesIO
 
 import re
 import cv2
@@ -64,13 +63,12 @@ def parseYYmmDD(yymmdd):
     _tuple = re.findall(r'\d+')
     return int(_tuple[0]), int(_tuple[1]), int(_tuple[2])
 
-def waterAdvice(name, lastdate):
+def waterAdvice(name, lastdate='2021-06-18'):
     '''
     @name: 植物种类 \\
     @lastdate: 上一次浇水的日期，格式为`yy-mm-dd` \\
     @return: 剩余浇水日期，等于0则说明今天需要浇水
     '''
-
     year, month, day = parseYYmmDD(lastdate)
     margin = time_margin(year, month, day) # 距离上次浇水天数
     weather = json_load('weather.json')
@@ -217,26 +215,12 @@ def plantIdentify():
         image.save(raw_image_filename)
 
         probs, class_names = plant_identifier.predict(raw_image_filename, topk=1)
-        name = class_names[0]['chinese_name']
-        kind_name = getKindName(name)
+        name = getKindName(class_names[0]['chinese_name'])
 
-        cache = searchFileStartsWith(kind_name, tmp_image_dir)
-        if cache == None:
-            refer = plant_crawler.CrabPlantImage(kind_name, tmp_image_dir)
-            if not refer:
-                refer = plant_crawler.CrabPlantImage(kind_name, tmp_image_dir, method='PBCC')
-        else:
-            refer = '{}/{}'.format(tmp_image_dir, cache)
-
-        with open(refer, 'rb') as f:
-            res = base64.b64encode(f.read())
-
-        return jsonify(sec_name=name.split('_')[0], 
-                        gen_name=name.split('_')[1], 
-                        kind_name=kind_name,
-                        intro=getPlantInfo(kind_name)['d'], 
-                        advice=waterAdvice(name, 7), 
-                        image=str(res, 'utf-8'))
+        return jsonify(name=name,
+                        intro=getPlantInfo(name)['d'], 
+                        advice=waterAdvice(name), 
+                        image=plant_crawler.CrabPlantImageUrl(name))
     return 'Non-support'
 
 @app.route('/compare', methods=['POST'])

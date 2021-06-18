@@ -7,6 +7,7 @@ LastEditTime: 2021-06-10 19:15:08
 import time
 import json
 import datetime
+from io import BytesIO
 from PIL import Image
 
 def time_stamp():
