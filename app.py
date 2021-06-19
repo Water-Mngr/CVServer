@@ -59,7 +59,7 @@ def parseYYmmDD(yymmdd):
     @yymmdd: 日期，格式为`yy-mm-dd` \\
     @return: 年月日(int)
     '''
-    _tuple = re.findall(r'\d+')
+    _tuple = re.findall(r'\d+', yymmdd)
     return int(_tuple[0]), int(_tuple[1]), int(_tuple[2])
 
 def waterAdvice(name, lastdate='2021-06-18'):
