@@ -253,7 +253,7 @@ def compare2plant():
         ind0, _, _ = plant_identifier.predict(images[0])
         ind1, _, _ = plant_identifier.predict(images[1])
         res = plant_cmp.compare(images[0], images[1], ind0, ind1)
-        return jsonify(similarity=res)
+        return jsonify(match=res)
 
     return 'Non-support'
 
@@ -264,10 +264,9 @@ def detectException():
         image = base64_to_pil(data['image'])
         image_filename = os.path.join(image_dir, '{}.jpg'.format(time_stamp()))  
         image.save(image_filename)
-
-        _, probs, class_names = plant_identifier.predict(image_filename, topk=1)
+        res = plant_detect.detect(image_filename)
         os.remove(image_filename)
-        return jsonify(problems='无异常')
+        return res
     return 'Non-support'
 
 if __name__ == '__main__':

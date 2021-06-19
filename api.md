@@ -2,7 +2,7 @@
  * @Copyrights: ©2021 @Laffery
  * @Date: 2021-05-09 13:24:34
  * @LastEditor: Laffery
- * @LastEditTime: 2021-06-09 15:25:22
+ * @LastEditTime: 2021-06-19 13:18:39
 -->
 # API
 
@@ -22,10 +22,8 @@
 
     Return: 
     
-        JSON { 
-            sec_name: string(科名), 
-            gen_name: string(属名), 
-            kind_name: string(种名),
+        JSON {
+            name: string(种名),
             intro: string(植物介绍), 
             advice: string(浇水建议),
             image: bytes[](植物参考图片)
@@ -49,7 +47,7 @@ Body:
 Return: 
 
     JSON: { 
-        similarity: float (相似度，＞ 1可认定为同一植物)
+        match: bool (是否匹配)
     }
 
 ## Plant-exception-detection
@@ -67,5 +65,5 @@ Body:
 Return: 
 
     JSON: { 
-        problems: string (异常种类) 
+        problem: string (异常种类) 
     }
