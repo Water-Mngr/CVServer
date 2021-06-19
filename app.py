@@ -37,8 +37,8 @@ scheduler = APScheduler()
 scheduler.init_app(app)
 scheduler.start()
 
-@scheduler.task('interval', id='do_job_1', seconds=3, misfire_grace_time=900)
-# @scheduler.task('cron', id='1', day='*', hour='08', minute='00', second='00')
+# @scheduler.task('interval', id='do_job_1', seconds=3, misfire_grace_time=900)
+@scheduler.task('cron', id='1', day='*', hour='08', minute='00', second='00')
 def grabWeather():
     '''
     每日08：00定时获取当天天气
