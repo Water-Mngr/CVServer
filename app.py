@@ -225,7 +225,7 @@ def plantIdentify():
         image_filename = os.path.join(image_dir, '{}.jpg'.format(time_stamp()))  
         image.save(image_filename)
 
-        _, probs, class_names = plant_identifier.predict(image_filename, topk=1)
+        _, probs, class_names = plant_identifier.predict(cv2.imread(image_filename), topk=1)
         name = getKindName(class_names[0]['chinese_name'])
 
         return jsonify(
