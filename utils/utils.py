@@ -2,7 +2,7 @@
 Copyrights: ©2021 @Laffery
 Date: 2021-06-09 08:28:03
 LastEditor: Laffery
-LastEditTime: 2021-06-19 14:59:33
+LastEditTime: 2021-06-19 15:47:19
 '''
 import time
 import json
@@ -22,7 +22,15 @@ def time_margin(year, month, day):
     @return 指定日期距今的天数
     '''
     today = time.localtime()
-    return datetime.date(today.tm_year, today.tm_mon, today.tm_mday) - datetime.date(year, month, day)
+    margin = datetime.date(today.tm_year, today.tm_mon, today.tm_mday) - datetime.date(year, month, day)
+    return margin.days
+
+def time_format():
+    '''
+    @return 当前日期的格式化输出，格式为'yy-mm-dd'
+    '''
+    today = time.localtime()
+    return f'{today.tm_year}-{today.tm_mon}-{today.tm_mday}'
 
 def json_load(filename):
     '''

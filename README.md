@@ -2,7 +2,7 @@
  * @Copyrights: ©2021 @Laffery
  * @Date: 2021-05-07 17:31:14
  * @LastEditor: Laffery
- * @LastEditTime: 2021-06-10 18:12:43
+ * @LastEditTime: 2021-06-19 16:03:18
 -->
 # CV Server
 
@@ -18,6 +18,7 @@
   - plant_id // 植物种类识别模块，源自[开源项目](https://github.com/quarrying/quarrying-plant-id/)
   - plant_cmp // 本项目开发的植物对比模块，对于两张图片，分析是否属于同一盆栽
   - plant_crawler // 本项目开发的植物抓手模块，用于抓取植物信息
+  - plant_detect // 本项目开发的植物异常检测模块，用于检测植物是否存在异常
 - templates // html模板，便于后端可视化校验正确性
 - app.py // flask app
 - requirements.txt python模块需求文件

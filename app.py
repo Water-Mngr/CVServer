@@ -62,14 +62,17 @@ def parseYYmmDD(yymmdd):
     _tuple = re.findall(r'\d+', yymmdd)
     return int(_tuple[0]), int(_tuple[1]), int(_tuple[2])
 
-def waterAdvice(name, lastdate='2021-06-18'):
+def waterAdvice(name, lastdate=None):
     '''
     @name: 植物种类 \\
     @lastdate: 上一次浇水的日期，格式为`yy-mm-dd` \\
     @return: 剩余浇水日期，等于0则说明今天需要浇水
     '''
-    year, month, day = parseYYmmDD(lastdate)
-    margin = int(time_margin(year, month, day)) # 距离上次浇水天数
+    if lastdate:
+        year, month, day = parseYYmmDD(lastdate)
+        margin = time_margin(year, month, day)# 距离上次浇水天数
+    else:
+        margin = 0
     weather = json_load('weather.json')
     info = getPlantInfo(name)['w'] + 1
 
@@ -77,9 +80,11 @@ def waterAdvice(name, lastdate='2021-06-18'):
     rest = refer[info]
 
     def handleHighTemperature(high):
+        dec = 0
         if high:
             r = [0, 1, 2] # 遇到高温要缩减的天数
-            rest -= r[info]
+            dec = -r[info]
+        return dec
 
     def handleWeather(weather):
         if weather == '大雨':
@@ -88,14 +93,14 @@ def waterAdvice(name, lastdate='2021-06-18'):
             r = [4, 2, 1] # 遇到中雨需要延长的天数
         else:
             r = [3, 1, 0] # 其它天气需要延长的天数
-        rest += r[info]
+        return r[info]
 
     for i in range(margin):
         date = datetime.datetime(year, month, day) + datetime.timedelta(days=i)
         w = weather['history']['{}-{}-{}'.format(date.year, date.month, date.day)]
 
-        handleHighTemperature(w['high'] > 30)
-        handleWeather(w['type'])
+        rest += handleHighTemperature(w['high'] > 30)
+        rest += handleWeather(w['type'])
 
     rest -= margin
     return rest if rest > 0 else 0
@@ -108,16 +113,6 @@ def getKindName(chinese_name):
     kind_name = chinese_name.split('_')[-1]
     patterns = re.findall(r'[(](.*?)[)]', kind_name) # 如果有括号
     return patterns[0] if len(patterns) else kind_name
-
-def allowed_file_type(filename):
-    '''
-    @return 允许的扩展名
-    '''
-    ALLOWED_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.bmp']
-    extension = os.path.splitext(os.path.basename(filename))[1]
-    return extension.lower() in ALLOWED_EXTENSIONS
-
-un_allowed_file_type_msg = 'Please check image file format, only support png, jpg, jpeg, bmp'
 
 root_dir = os.path.dirname(__file__)
 image_dir = os.path.join(root_dir, 'static/images')
@@ -143,10 +138,6 @@ def plantIdentifyUI():
     if request.method == 'POST':
         f = request.files['image']
         image_filename = os.path.basename(f.filename)
-
-        if not (f and allowed_file_type(image_filename)):
-            return jsonify({'error': 1001, 'message': un_allowed_file_type_msg})
-        
         new_filename = '{}{}'.format(time_stamp(), os.path.splitext(image_filename)[-1])
         image_filename = os.path.join(image_dir, new_filename)  
         f.save(image_filename)
@@ -176,9 +167,6 @@ def compare2plantUI():
 
         for file in files:
             image_filename = os.path.basename(file.filename)
-            if not (file and allowed_file_type(image_filename)):
-                return jsonify({'error': 1001, 'message': un_allowed_file_type_msg})
-
             new_filename = '{}{}'.format(time_stamp(), os.path.splitext(image_filename)[-1])
             image_filename = os.path.join(image_dir, new_filename)
             file.save(image_filename)
@@ -198,10 +186,6 @@ def detectExceptionUI():
     if request.method == 'POST':
         f = request.files['image']
         image_filename = os.path.basename(f.filename)
-
-        if not (f and allowed_file_type(image_filename)):
-            return jsonify({'error': 1001, 'message': un_allowed_file_type_msg})
-        
         new_filename = '{}{}'.format(time_stamp(), os.path.splitext(image_filename)[-1])
         image_filename = os.path.join(image_dir, new_filename)  
         f.save(image_filename)
@@ -225,7 +209,7 @@ def plantIdentify():
         image_filename = os.path.join(image_dir, '{}.jpg'.format(time_stamp()))  
         image.save(image_filename)
 
-        _, probs, class_names = plant_identifier.predict(cv2.imread(image_filename), topk=1)
+        _, _, class_names = plant_identifier.predict(cv2.imread(image_filename), topk=1)
         name = getKindName(class_names[0]['chinese_name'])
 
         return jsonify(
@@ -234,7 +218,17 @@ def plantIdentify():
                         advice=waterAdvice(name), 
                         image=plant_crawler.CrabPlantImageUrl(name)
                     )
-    return 'Non-support'
+    return 'Non-support request'
+
+@app.route('/water', methods=['POST'])
+def weatherWater():
+    if request.content_type.startswith('application/json'):
+        data = request.get_json()
+        name = data['name']
+        lastdate = data['date']
+        return jsonify(advice=waterAdvice(name, lastdate))
+
+    return 'Non-support request'
 
 @app.route('/compare', methods=['POST'])
 def compare2plant():
@@ -255,7 +249,7 @@ def compare2plant():
         res = plant_cmp.compare(images[0], images[1], ind0, ind1)
         return jsonify(match=res)
 
-    return 'Non-support'
+    return 'Non-support request'
 
 @app.route('/detect', methods=['POST'])
 def detectException():
@@ -266,8 +260,8 @@ def detectException():
         image.save(image_filename)
         res = plant_detect.detect(image_filename)
         os.remove(image_filename)
-        return res
-    return 'Non-support'
+        return jsonify(problem=res)
+    return 'Non-support request'
 
 if __name__ == '__main__':
     app.run(debug=True)
