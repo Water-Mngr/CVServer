@@ -69,7 +69,7 @@ def waterAdvice(name, lastdate='2021-06-18'):
     @return: 剩余浇水日期，等于0则说明今天需要浇水
     '''
     year, month, day = parseYYmmDD(lastdate)
-    margin = time_margin(year, month, day) # 距离上次浇水天数
+    margin = int(time_margin(year, month, day)) # 距离上次浇水天数
     weather = json_load('weather.json')
     info = getPlantInfo(name)['w'] + 1
 
