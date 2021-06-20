@@ -2,7 +2,7 @@
  * @Copyrights: ©2021 @Laffery
  * @Date: 2021-05-09 13:24:34
  * @LastEditor: Laffery
- * @LastEditTime: 2021-06-19 16:02:11
+ * @LastEditTime: 2021-06-20 16:05:37
 -->
 # API
 
@@ -65,7 +65,8 @@ Body:
 Return: 
 
     JSON: { 
-        problem: string (异常种类) 
+        color: int (颜色正常指数，2为好，1为一般，0为差),
+        shape: int (形状正常指数，1为好，0为差)
     }
 
 ## Water Advice
@@ -77,6 +78,7 @@ Method: **POST**
 Body: 
 
     {
+        addr: string (所在城市名称),
         name: string (植物名称),
         date: string (上次浇水日期，格式为yy-mm-dd)
     }

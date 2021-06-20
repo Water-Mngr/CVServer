@@ -190,7 +190,8 @@ def detectExceptionUI():
         image_filename = os.path.join(image_dir, new_filename)  
         f.save(image_filename)
 
-        res = plant_detect.detect(image_filename)
+        color, shape = plant_detect.detect(image_filename)
+        res = f'颜色正常指数：{color},形状正常指数：{shape}'
                 
         return render_template(
                                 'detect_upload_ok.html', 
@@ -258,9 +259,9 @@ def detectException():
         image = base64_to_pil(data['image'])
         image_filename = os.path.join(image_dir, '{}.jpg'.format(time_stamp()))  
         image.save(image_filename)
-        res = plant_detect.detect(image_filename)
+        color, shape = plant_detect.detect(image_filename)
         os.remove(image_filename)
-        return jsonify(problem=res)
+        return jsonify(color=color, shape=shape)
     return 'Non-support request'
 
 if __name__ == '__main__':

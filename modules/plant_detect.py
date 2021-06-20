@@ -2,7 +2,7 @@
 Copyrights: ©2021 @Laffery
 Date: 2021-06-18 22:02:49
 LastEditor: Laffery
-LastEditTime: 2021-06-18 23:28:58
+LastEditTime: 2021-06-20 16:01:50
 '''
 import cv2
 import numpy as np
@@ -86,8 +86,12 @@ def normalLevel(img):
 
 
 def detect(filepath):
+    '''
+    @return:
+    colorNorm: 2为好，1为一般，0为差
+    shapeNorm: 1为好，0为差
+    '''
     img = cv2.imread(filepath)
     colorNorm, shapeNorm = normalLevel(img)
-    # 颜色正常等级: 2为好，1为一般，0为差
-    # 形状正常等级: 1为好，0为差
-    return f'颜色正常等级：{colorNorm}, 形状正常等级：{shapeNorm}'
+    
+    return colorNorm, shapeNorm
